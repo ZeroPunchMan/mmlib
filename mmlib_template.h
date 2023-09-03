@@ -1,5 +1,4 @@
 #include "cl_common.h"
-#include "nrf52_gpio_abs.h"
 
 typedef enum
 {
