@@ -30,8 +30,8 @@ typedef struct
 static SgpChannel_t sgpChannels[SpgChannelHandle_Max];
 
 static inline SgpChannel_t *Handle2Channel(SpgChannelHandle_t handle)
-{ // TODO Assert
-
+{ 
+    CL_ASSERT(handle < SpgChannelHandle_Max);
     return sgpChannels + handle;
 }
 
@@ -105,7 +105,7 @@ static void ParseCrc(SgpChannel_t *channel, uint8_t byte)
 
 void SgpProtocol_RecvByte(SpgChannelHandle_t handle, uint8_t byte)
 {
-    SgpChannel_t *channel = Handle2Channel(handle); // TODO Assert
+    SgpChannel_t *channel = Handle2Channel(handle); 
 
     static uint32_t lastRecvTime = 0;
     if (SysTimeSpan(lastRecvTime) > SGP_FRAME_TIMEOUT)
@@ -180,7 +180,7 @@ void SgpProtocol_RecvData(SpgChannelHandle_t handle, const uint8_t *buff, uint16
 
 CL_Result_t SgpProtocol_SendMsg(SpgChannelHandle_t handle, uint8_t cmd, uint8_t subCmd, const uint8_t *data, uint8_t length)
 {
-    SgpChannel_t *channel = Handle2Channel(handle); // TODO Assert
+    SgpChannel_t *channel = Handle2Channel(handle); 
 
     uint8_t mt[3];
     uint16_t crc = 0;
@@ -246,6 +246,6 @@ void SgpProtocol_AddChannel(SpgChannelHandle_t handle, SGP_SendFunc s)
 
 void SgpProtocol_RmChannel(SpgChannelHandle_t handle)
 {
-    SgpChannel_t *channel = Handle2Channel(handle); // TODO Assert
+    SgpChannel_t *channel = Handle2Channel(handle); 
     channel->handle = -1;
 }
