@@ -87,11 +87,11 @@ static void ParseCrc(SgpChannel_t *channel, uint8_t byte)
         {
             CL_EventSysRaise(CL_Event_SgpRecvMsg, channel->handle, &channel->recvPacket);
             ToParseHead(channel); // reset parse status
-            CL_LOG_INFO(SGP, "crc ok\r\n");
+            // CL_LOG_INFO("crc ok");
         }
         else
         {
-            CL_LOG_INFO(SGP, "crc error: %04x, exp: %04x\r\n", channel->verifyValue, crc);
+            // CL_LOG_INFO("crc error: %04x, exp: %04x", channel->verifyValue, crc);
             // verify code mismatched
             ToParseHead(channel); // reset parse status
         }
