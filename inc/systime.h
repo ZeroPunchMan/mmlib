@@ -4,6 +4,8 @@
 
 #define SYSTIME_SECOND(s) (s * 1000UL)
 
+#if MM_USE_DEFAULT_SYSTIME
+
 extern volatile uint32_t g_sysTime;
 
 static inline void SysTimeInc(uint32_t inc)
@@ -32,3 +34,5 @@ static inline void DelayOnSysTime(uint32_t time)
     while (SysTimeSpan(curTime) < time)
         ;
 }
+
+#endif
