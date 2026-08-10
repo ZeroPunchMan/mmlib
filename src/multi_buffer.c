@@ -1,44 +1,48 @@
 #include "multi_buffer.h"
-#include "atomic_arm7m.h"
 
-static void CountInc(volatile uint16_t *val)
+// 多页缓存
+static inline uint16_t NextPos(uint16_t pos, uint16_t step, uint16_t max)
 {
-    val[0]++;
+    pos = (pos + step) % (max);
+    return pos;
 }
 
-static void CountDec(volatile uint16_t *val)
-{
-    val[0]--;
-}
-
+// push和getback都是生产者用
 CL_Result_t MultiBufferPush(MultiBuffer_t *mulitBuffer, uint32_t length)
 {
-    if(mulitBuffer->count + 1 >= mulitBuffer->buffNum) //只有一个back可用,不push
+    uint16_t nextPage = NextPos(mulitBuffer->back, 1, mulitBuffer->buffNum);
+    if (nextPage == mulitBuffer->front) // back下一页就是front了,说明只有一个back可用,此时不push
         return CL_ResFailed;
 
-    mulitBuffer->lenTable[mulitBuffer->back] = length;
-    mulitBuffer->back = (mulitBuffer->back + 1) % mulitBuffer->buffNum;
-
-    AtomicOnHaflWord(&mulitBuffer->count, CountInc);
+    uint16_t slot = mulitBuffer->lenTable[mulitBuffer->back] = length;
+    mulitBuffer->back = nextPage;
 
     return CL_ResSuccess;
 }
 
+CL_Result_t MultiBufferGetBack(MultiBuffer_t *mulitBuffer, uint8_t **ppbuff)
+{
+    // Push函数保证了只有一个back页时不push,所以直接拿当前back页就行
+    uint16_t index = mulitBuffer->back;
+    ppbuff[0] = mulitBuffer->memAddr + index * mulitBuffer->buffSize;
+
+    return CL_ResSuccess;
+}
+
+// pop和peek都是消费者用
 CL_Result_t MultiBufferPop(MultiBuffer_t *mulitBuffer)
 {
-    if(mulitBuffer->count == 0)
+    if (mulitBuffer->front == mulitBuffer->back)  //此时还没有push任何一个back页
         return CL_ResFailed;
 
-    mulitBuffer->front = (mulitBuffer->front + 1) % mulitBuffer->buffNum;
+    mulitBuffer->front = NextPos(mulitBuffer->front, 1, mulitBuffer->buffNum);
 
-    AtomicOnHaflWord(&mulitBuffer->count, CountDec);
-    
     return CL_ResSuccess;
 }
 
-CL_Result_t MultiBufferPeek(MultiBuffer_t *mulitBuffer, uint16_t index, uint8_t **ppbuff, uint32_t* pLength)
+CL_Result_t MultiBufferPeek(MultiBuffer_t *mulitBuffer, uint16_t index, uint8_t **ppbuff, uint32_t *pLength)
 {
-    if(mulitBuffer->count == 0 || index >= mulitBuffer->count )
+    if (index >= MultiBufferGetCount(mulitBuffer))
         return CL_ResFailed;
 
     index = (mulitBuffer->front + index) % mulitBuffer->buffNum;
@@ -48,16 +52,18 @@ CL_Result_t MultiBufferPeek(MultiBuffer_t *mulitBuffer, uint16_t index, uint8_t 
     return CL_ResSuccess;
 }
 
-CL_Result_t MultiBufferGetBack(MultiBuffer_t* mulitBuffer, uint8_t** ppbuff)
+uint16_t MultiBufferGetCount(MultiBuffer_t *mulitBuffer)
 {
-    // if(mulitBuffer->count >= mulitBuffer->buffNum)
-    //     return -1;
+    uint16_t front, back;
+    front = mulitBuffer->front;
+    back = mulitBuffer->back;
 
-    uint16_t index = mulitBuffer->back;
-    ppbuff[0] = mulitBuffer->memAddr + index * mulitBuffer->buffSize;
-
-    return CL_ResSuccess;
+    if (back >= front)
+    {
+        return back - front;
+    }
+    else
+    {
+        return mulitBuffer->buffNum - front + back;
+    }
 }
-
-
-
